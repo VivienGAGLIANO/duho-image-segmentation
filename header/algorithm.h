@@ -12,10 +12,18 @@ namespace duho
     class superpixel_generation
     {
     public:
-        superpixel_generation();
+        superpixel_generation()=delete;
+        superpixel_generation(Eigen::MatrixXd &image, double feature_size, double K, bool normalize = true);
         ~superpixel_generation();
 
         static std::vector<superpixel> generate_superpixels(const Eigen::MatrixXd &image);
+
+    private:
+        Eigen::MatrixXd &m_image;
+        double m_feature_size;
+        double m_K;
+        double m_alpha = 2;
+        uint8_t m_beta = 10;
     };
 
 
