@@ -1,3 +1,6 @@
+# Limitations
+Only works with squared images, because rectangular images are more work :|
+
 # Additional libraries install
 
 ## [png++](https://www.nongnu.org/pngpp/)

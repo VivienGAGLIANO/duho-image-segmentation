@@ -23,8 +23,8 @@ Eigen::MatrixXd image_to_matrix(const png::image<png::rgb_pixel> &image)
 
     Eigen::MatrixXd matrix(image.get_width()*image.get_height(), 3);
 
-    for (png::uint_32 y = 0; y < image.get_height(); ++y)
-    for (png::uint_32 x = 0; x < image.get_width(); ++x)
+    for (size_t y = 0; y < image.get_height(); ++y)
+    for (size_t x = 0; x < image.get_width(); ++x)
     {
         png::rgb_pixel pixel = image[y][x];
         matrix(x+image.get_width()*y, 0) = pixel.red;
@@ -50,8 +50,8 @@ png::image<png::rgb_pixel> matrix_to_image(const Eigen::MatrixXd &matrix, const 
 
     png::image<png::rgb_pixel> image(dimensions(0), dimensions(1));
 
-    for (png::uint_32 y = 0; y < image.get_height(); ++y)
-    for (png::uint_32 x = 0; x < image.get_width(); ++x)
+    for (size_t y = 0; y < image.get_height(); ++y)
+    for (size_t x = 0; x < image.get_width(); ++x)
     {
         png::rgb_pixel pixel;
         pixel.red = matrix(x+image.get_width()*y, 0);

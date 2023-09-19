@@ -2,7 +2,8 @@
 #include <png++/image.hpp>
 #include <png++/require_color_space.hpp>
 
-#include "header/eigen_image.h"
+#include "algorithm.h"
+#include "eigen_image.h"
 #include "utils.h"
 
 //using namespace duho;
@@ -17,7 +18,7 @@ int main(int argc, char **argv)
 
     // Read image
     std::string filename = argv[1];
-    png::image<png::rgb_pixel > image(filename,  png::require_color_space<png::rgb_pixel>());
+    png::image<png::rgb_pixel> image(filename,  png::require_color_space<png::rgb_pixel>());
 
     // Convert RGB image to L*a*b* color space
     rgb_image_to_lab(image);
@@ -29,6 +30,9 @@ int main(int argc, char **argv)
     uint8_t beta = 10;
 
     Eigen::MatrixXd matrix = duho::image_to_matrix<png::rgb_pixel>(image);
+    duho::superpixel_generation superpixel_generation(matrix, feature_size, K);
+//    duho::matrix_to_image<png::rgb_pixel>(superpixel_generation.m_image*255., {image.get_width(), image.get_height()}).write("albedo_normalized.png");
+//    image.write("albedo_Lab.png");
 
     std::cout << "Still working" << std::endl;
 
