@@ -14,16 +14,19 @@ namespace duho
     public:
         superpixel_generation()=delete;
         superpixel_generation(Eigen::MatrixXd &image, double feature_size, double K, bool normalize = true);
-        ~superpixel_generation();
+        ~superpixel_generation()=default;
 
-        static std::vector<superpixel> generate_superpixels(const Eigen::MatrixXd &image);
+        std::vector<superpixel> generate_superpixels();
 
     public: //(this should be private)
-        Eigen::MatrixXd &m_image;
         double m_feature_size;
         double m_K;
         double m_alpha = 2;
         uint8_t m_beta = 10;
+
+        Eigen::MatrixXd &m_image;
+        std::vector<Eigen::Matrix<double, 5, 1>> m_centers;
+
 
     private:
     class augmented_matrix : public Eigen::MatrixXd

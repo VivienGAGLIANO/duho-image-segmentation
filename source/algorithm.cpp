@@ -4,7 +4,7 @@
 namespace duho
 {
 
-    superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, double K, bool normalize) : m_image(image), m_feature_size(feature_size), m_K(K)
+    superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, double K, bool normalize) : m_feature_size(feature_size), m_K(K), m_image(image), m_centers(K)
     {
         if (normalize)
         {
@@ -17,16 +17,32 @@ namespace duho
             m_image.rowwise() -= m_image.colwise().minCoeff();
             m_image *= range.asDiagonal();
         }
-
-        Eigen::MatrixXd image_5d = augmented_matrix(m_image);
-        std::cout << image_5d << std::endl;
-
-        // IWASHERE data is normalized, it's K-means o'clock
     }
 
-    superpixel_generation::~superpixel_generation() {}
+    std::vector<superpixel> superpixel_generation::generate_superpixels()
+    {
+        augmented_matrix image_5d = augmented_matrix(m_image);
 
-    std::vector<superpixel> superpixel_generation::generate_superpixels(const Eigen::MatrixXd &image) {
+        // Step 1 : Initialize K cluster centers
+        const int per_row = static_cast<int>(std::sqrt(m_K));
+        const int interval = static_cast<int>(std::sqrt(m_feature_size));
+
+        for (size_t k = 0; k < m_K; ++k)
+        {
+            int i = (k % per_row)*interval,
+                j = (k / per_row)*interval,
+                ind;
+            image_5d.ij_to_ind(i, j, ind);
+            m_centers[k] = image_5d.row(ind);
+        }
+
+        // Step 2 : Assign each pixel to the cluster center with the smallest distance
+
+        // Step 3 : Update the cluster centers
+
+        // Step 4 : Repeat steps 2 and 3 until convergence or stopping criterion is met
+
+
         return std::vector<superpixel>();
     }
 

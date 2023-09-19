@@ -31,7 +31,8 @@ int main(int argc, char **argv)
 
     Eigen::MatrixXd matrix = duho::image_to_matrix<png::rgb_pixel>(image);
     duho::superpixel_generation superpixel_generation(matrix, feature_size, K);
-//    duho::matrix_to_image<png::rgb_pixel>(superpixel_generation.m_image*255., {image.get_width(), image.get_height()}).write("albedo_normalized.png");
+    superpixel_generation.generate_superpixels();
+//    duho::matrix_to_image<png::rgb_pixel>(superpixel_generation.m_image*255., {image.get_width(), image.get_height()}).write(filename.replace(0, 10, "output/").substr(0, filename.size()-4) + "_normalized.png");
 //    image.write("albedo_Lab.png");
 
     std::cout << "Still working" << std::endl;

@@ -36,7 +36,11 @@ cmake-build-*
 [Bb][Uu][Ii][Ll][Dd]/
 
 # Resources
+resources/
 *.png
 
 # IDE files
 .idea/
+
+# Results files
+output/
