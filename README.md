@@ -1,6 +1,8 @@
 # Limitations
 Only works with squared images, because rectangular images are more work :|
 
+The algorithm uses L*a*b* color space, and thus only works on RGB images.
+
 # Additional libraries install
 
 ## [png++](https://www.nongnu.org/pngpp/)

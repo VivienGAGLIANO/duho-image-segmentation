@@ -17,15 +17,18 @@ namespace duho
         ~superpixel_generation()=default;
 
         std::vector<superpixel> generate_superpixels();
+        static double weighted_euclidian_distance_squared(const Eigen::Vector<double, 5> &x, const Eigen::Vector<double, 5> &y, const Eigen::Vector<double, 5> &weights);
 
     public: //(this should be private)
         double m_feature_size;
         double m_K;
         double m_alpha = 2;
         uint8_t m_beta = 10;
+        Eigen::Vector<double, 5> m_weights = {1, 1, 1, .2, .2};
 
         Eigen::MatrixXd &m_image;
         std::vector<Eigen::Matrix<double, 5, 1>> m_centers;
+        std::vector<superpixel> m_clusters;
 
 
     private:

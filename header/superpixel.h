@@ -21,8 +21,8 @@ public:
     static std::vector<superpixel> generate_superpixels(const Eigen::MatrixXd &image);
 
 
-private:
-    std::vector<Eigen::Vector2f> m_pixels;
+//private:
+    std::vector<Eigen::Vector2d> m_pixels;
 };
 
 } // duho

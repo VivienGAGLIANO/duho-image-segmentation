@@ -4,7 +4,7 @@
 namespace duho
 {
 
-    superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, double K, bool normalize) : m_feature_size(feature_size), m_K(K), m_image(image), m_centers(K)
+    superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, double K, bool normalize) : m_feature_size(feature_size), m_K(K), m_image(image), m_centers(K), m_clusters(K)
     {
         if (normalize)
         {
@@ -36,14 +36,49 @@ namespace duho
             m_centers[k] = image_5d.row(ind);
         }
 
-        // Step 2 : Assign each pixel to the cluster center with the smallest distance
+        while (m_beta > 0) // TODO implement m_alpha criterion
+        {
+            // Step 2 : Assign each pixel to the cluster center with the smallest distance
+            for (size_t ind = 0; ind < image_5d.rows(); ++ind) {
+                Eigen::Vector<double, 5> pixel = image_5d.row(ind);
+                double d = -1;
+                size_t index = 0;
+                for (size_t k = 1; k < m_K; ++k) {
+                    double d_k = weighted_euclidian_distance_squared(pixel, m_centers[k], m_weights);
+                    if (d_k < d) {
+                        d = d_k;
+                        index = k;
+                    }
+                }
+                m_clusters[index].m_pixels.emplace_back(pixel.tail(2));
+            }
 
-        // Step 3 : Update the cluster centers
+            // Step 3 : Update the cluster centers by averaging xy coordinates
+            for (size_t k = 0; k < m_K; ++k) {
+                Eigen::Vector<double, 2> center = Eigen::Vector<double, 2>::Zero();
+                for (size_t ind = 0; ind < m_clusters[k].m_pixels.size(); ++ind) {
+                    center += m_clusters[k].m_pixels[ind];
+                }
+                center /= m_clusters[k].m_pixels.size();
+                int ind;
+                image_5d.ij_to_ind(center(0), center(1), ind);
+                m_centers[k] = image_5d.row(ind);
+            }
+
+            --m_beta;
+        }
 
         // Step 4 : Repeat steps 2 and 3 until convergence or stopping criterion is met
 
 
-        return std::vector<superpixel>();
+        return m_clusters;
+    }
+
+    double superpixel_generation::weighted_euclidian_distance_squared(const Eigen::Vector<double, 5> &x,
+                                                              const Eigen::Vector<double, 5> &y,
+                                                              const Eigen::Vector<double, 5> &weights)
+    {
+        return (x-y).transpose() * weights.asDiagonal() * (x-y);
     }
 
     superpixel_generation::augmented_matrix::augmented_matrix(const Eigen::MatrixXd &matrix) : Eigen::MatrixXd(matrix.rows(), matrix.cols()+2), size(std::sqrt(matrix.rows()))
