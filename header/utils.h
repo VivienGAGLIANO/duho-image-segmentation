@@ -6,7 +6,8 @@
 #include <cmath>
 
 // RGB to XYZ conversion
-void rgb_to_xyz(double r, double g, double b, double &x, double &y, double &z) {
+void rgb_to_xyz(double r, double g, double b, double &x, double &y, double &z)
+{
     r /= 255.0;
     g /= 255.0;
     b /= 255.0;
@@ -30,7 +31,8 @@ void rgb_to_xyz(double r, double g, double b, double &x, double &y, double &z) {
 }
 
 // XYZ to L*a*b* conversion
-void xyz_to_lab(double x, double y, double z, double &l, double &a, double &b) {
+void xyz_to_lab(double x, double y, double z, double &l, double &a, double &b)
+{
     x /= 95.047;
     y /= 100.000;
     z /= 108.883;
@@ -50,9 +52,12 @@ void xyz_to_lab(double x, double y, double z, double &l, double &a, double &b) {
 }
 
 // Convert RGB image to L*a*b* color space
-void rgb_image_to_lab(png::image<png::rgb_pixel> &image) {
-    for (size_t y = 0; y < image.get_height(); ++y) {
-        for (size_t x = 0; x < image.get_width(); ++x) {
+void rgb_image_to_lab(png::image<png::rgb_pixel> &image)
+{
+    for (size_t y = 0; y < image.get_height(); ++y)
+    {
+        for (size_t x = 0; x < image.get_width(); ++x)
+        {
             // Get RGB values
             double r = image[y][x].red;
             double g = image[y][x].green;
@@ -74,6 +79,8 @@ void rgb_image_to_lab(png::image<png::rgb_pixel> &image) {
         }
     }
 }
+
+// Color hash function from integer to RGB
 
 
 #endif //DUHO_UTILS_H

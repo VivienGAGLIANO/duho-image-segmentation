@@ -1,51 +1,51 @@
+//#include <execution>
 #include <iostream>
+
 #include "algorithm.h"
 
 namespace duho
 {
 
-    superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, double K, bool normalize) : m_feature_size(feature_size), m_K(K), m_image(image), m_centers(K), m_clusters(K)
-    {
-        if (normalize)
-        {
-//            image is in L*a*b* color space, and does not follow gaussian distribution
-//            we thus use min-max normalization instead of z-score
-//            m_image.colwise() *= Eigen::vectorXd::Constant(m_image.rows(), 1./255.);
-            Eigen::VectorXd range = (m_image.colwise().maxCoeff() - m_image.colwise().minCoeff());
-            range = 1./range.array();
-
-            m_image.rowwise() -= m_image.colwise().minCoeff();
-            m_image *= range.asDiagonal();
-        }
-    }
+    superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, int K, bool normalize) :
+        m_feature_size(feature_size),
+        m_K(K)/*, m_image(image)*/,
+        m_centers(K),
+        m_clusters(K),
+        m_image_5d(normalize ? normalize_data(image) : image)
+    {}
 
     std::vector<superpixel> superpixel_generation::generate_superpixels()
     {
-        augmented_matrix image_5d = augmented_matrix(m_image);
+//        augmented_matrix image_5d = augmented_matrix(m_image);
 
         // Step 1 : Initialize K cluster centers
         const int per_row = static_cast<int>(std::sqrt(m_K));
         const int interval = static_cast<int>(std::sqrt(m_feature_size));
 
+        // TODO parallelize this
         for (size_t k = 0; k < m_K; ++k)
         {
-            int i = (k % per_row)*interval,
-                j = (k / per_row)*interval,
+            int i = (static_cast<int>(k) % per_row)*interval,
+                j = (static_cast<int>(k) / per_row)*interval,
                 ind;
-            image_5d.ij_to_ind(i, j, ind);
-            m_centers[k] = image_5d.row(ind);
+            m_image_5d.ij_to_ind(i, j, ind);
+            m_centers[k] = m_image_5d.row(ind);
         }
 
         while (m_beta > 0) // TODO implement m_alpha criterion
         {
             // Step 2 : Assign each pixel to the cluster center with the smallest distance
-            for (size_t ind = 0; ind < image_5d.rows(); ++ind) {
-                Eigen::Vector<double, 5> pixel = image_5d.row(ind);
+            // TODO parallelize this
+            for (size_t ind = 0; ind < m_image_5d.rows(); ++ind)
+            {
+                Eigen::Vector<double, 5> pixel = m_image_5d.row(ind);
                 double d = -1;
                 size_t index = 0;
-                for (size_t k = 1; k < m_K; ++k) {
+                for (size_t k = 1; k < m_K; ++k)
+                {
                     double d_k = weighted_euclidian_distance_squared(pixel, m_centers[k], m_weights);
-                    if (d_k < d) {
+                    if (d_k < d)
+                    {
                         d = d_k;
                         index = k;
                     }
@@ -53,16 +53,23 @@ namespace duho
                 m_clusters[index].m_pixels.emplace_back(pixel.tail(2));
             }
 
-            // Step 3 : Update the cluster centers by averaging xy coordinates
-            for (size_t k = 0; k < m_K; ++k) {
+            // Step 3 : Update the cluster centers by averaging xy coordinates. This (probably) works because superpixels seem to be convex shapes.
+            // TODO parallelize this
+            for (size_t k = 0; k < m_K; ++k)
+            {
                 Eigen::Vector<double, 2> center = Eigen::Vector<double, 2>::Zero();
-                for (size_t ind = 0; ind < m_clusters[k].m_pixels.size(); ++ind) {
+                for (size_t ind = 0; ind < m_clusters[k].m_pixels.size(); ++ind)
+                {
                     center += m_clusters[k].m_pixels[ind];
                 }
-                center /= m_clusters[k].m_pixels.size();
+                if (!m_clusters[k].m_pixels.empty())
+                    center /= (double)m_clusters[k].m_pixels.size() / m_image_5d.get_size();
                 int ind;
-                image_5d.ij_to_ind(center(0), center(1), ind);
-                m_centers[k] = image_5d.row(ind);
+                m_image_5d.ij_to_ind(center(0), center(1), ind);
+
+
+                Eigen::Matrix<double, 5, 1> row = m_image_5d.row(ind);
+                m_centers[k] = row;
             }
 
             --m_beta;
@@ -81,6 +88,37 @@ namespace duho
         return (x-y).transpose() * weights.asDiagonal() * (x-y);
     }
 
+    Eigen::MatrixXd superpixel_generation::clusters_to_image() const
+    {
+        Eigen::MatrixXd image(m_image_5d.rows(), 3);
+        for (size_t k = 0; k < m_K; ++k)
+        {
+            for (size_t ind = 0; ind < m_clusters[k].m_pixels.size(); ++ind)
+            {
+                int i = m_clusters[k].m_pixels[ind](0),
+                    j = m_clusters[k].m_pixels[ind](1),
+                    index;
+                m_image_5d.ij_to_ind(i, j, index);
+
+                Eigen::Vector3d row {k, k, k};
+                image.row(index) = row;
+            }
+        }
+
+        return image;
+    }
+
+    Eigen::MatrixXd superpixel_generation::normalize_data(Eigen::MatrixXd image)
+    {
+        Eigen::VectorXd range = (image.colwise().maxCoeff() - image.colwise().minCoeff());
+        range = 1./range.array();
+
+        image.rowwise() -= image.colwise().minCoeff();
+        image *= range.asDiagonal();
+
+        return image + Eigen::MatrixXd();
+    }
+
     superpixel_generation::augmented_matrix::augmented_matrix(const Eigen::MatrixXd &matrix) : Eigen::MatrixXd(matrix.rows(), matrix.cols()+2), size(std::sqrt(matrix.rows()))
     {
         block(0,0,matrix.rows(),matrix.cols()) = matrix;
@@ -94,16 +132,21 @@ namespace duho
         }
     }
 
-    void superpixel_generation::augmented_matrix::ind_to_ij(int ind, int &i, int &j)
+    void superpixel_generation::augmented_matrix::ind_to_ij(int ind, int &i, int &j) const
     {
         // here we make the assumption that the original image is square
         i = ind % (int)size;
         j = ind / (int)size;
     }
 
-    void superpixel_generation::augmented_matrix::ij_to_ind(int i, int j, int &ind)
+    void superpixel_generation::augmented_matrix::ij_to_ind(int i, int j, int &ind) const
     {
         ind = j * (int)size + i;
+    }
+
+    int superpixel_generation::augmented_matrix::get_size() const
+    {
+        return size;
     }
 
 } // duho

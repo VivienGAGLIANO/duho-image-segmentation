@@ -12,7 +12,7 @@ class superpixel
 public:
     // constructors and destructors
     superpixel();
-    explicit superpixel(const std::vector<Eigen::Vector2f> &pixels);
+    explicit superpixel(const std::vector<Eigen::Vector2d> &pixels);
 
     ~superpixel();
 

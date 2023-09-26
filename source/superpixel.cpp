@@ -3,9 +3,9 @@
 namespace duho
 {
 
-superpixel::superpixel() : m_pixels(std::vector<Eigen::Vector2f>()) {}
+superpixel::superpixel() : m_pixels() {}
 
-superpixel::superpixel(const std::vector<Eigen::Vector2f> &pixels) : m_pixels(pixels) {}
+superpixel::superpixel(const std::vector<Eigen::Vector2d> &pixels) : m_pixels(pixels) {}
 
 superpixel::~superpixel()
 {

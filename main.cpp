@@ -6,7 +6,6 @@
 #include "eigen_image.h"
 #include "utils.h"
 
-//using namespace duho;
 
 int main(int argc, char **argv)
 {
@@ -34,6 +33,8 @@ int main(int argc, char **argv)
     superpixel_generation.generate_superpixels();
 //    duho::matrix_to_image<png::rgb_pixel>(superpixel_generation.m_image*255., {image.get_width(), image.get_height()}).write(filename.replace(0, 10, "output/").substr(0, filename.size()-4) + "_normalized.png");
 //    image.write("albedo_Lab.png");
+    Eigen::MatrixXd clusters = superpixel_generation.clusters_to_image();
+    duho::matrix_to_image<png::rgb_pixel>(clusters, {image.get_width(), image.get_height()}).write(filename.replace(0, 10, "output/").substr(0, filename.size()-4) + "_clusters.png");
 
     std::cout << "Still working" << std::endl;
 

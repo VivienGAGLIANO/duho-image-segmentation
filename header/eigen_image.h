@@ -47,6 +47,7 @@ png::image<png::rgb_pixel> matrix_to_image(const Eigen::MatrixXd &matrix, const 
         std::cerr << "Matrix is empty." << std::endl;
         return {};
     }
+    // TODO check matrix has right number of channels
 
     png::image<png::rgb_pixel> image(dimensions(0), dimensions(1));
 
