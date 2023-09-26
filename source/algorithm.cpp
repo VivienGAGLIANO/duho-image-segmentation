@@ -25,8 +25,8 @@ namespace duho
         // TODO parallelize this
         for (size_t k = 0; k < m_K; ++k)
         {
-            int i = (static_cast<int>(k) % per_row)*interval,
-                j = (static_cast<int>(k) / per_row)*interval,
+            int i = ((static_cast<int>(k) % per_row)+0.5)*interval,
+                j = ((static_cast<int>(k) / per_row)+0.5)*interval,
                 ind;
             m_image_5d.ij_to_ind(i, j, ind);
             m_centers[k] = m_image_5d.row(ind);
@@ -39,7 +39,7 @@ namespace duho
             for (size_t ind = 0; ind < m_image_5d.rows(); ++ind)
             {
                 Eigen::Vector<double, 5> pixel = m_image_5d.row(ind);
-                double d = -1;
+                double d = weighted_euclidian_distance_squared(pixel, m_centers[0], m_weights);
                 size_t index = 0;
                 for (size_t k = 1; k < m_K; ++k)
                 {
@@ -95,8 +95,8 @@ namespace duho
         {
             for (size_t ind = 0; ind < m_clusters[k].m_pixels.size(); ++ind)
             {
-                int i = m_clusters[k].m_pixels[ind](0),
-                    j = m_clusters[k].m_pixels[ind](1),
+                int i = m_clusters[k].m_pixels[ind](0)*m_image_5d.get_size(),
+                    j = m_clusters[k].m_pixels[ind](1)*m_image_5d.get_size(),
                     index;
                 m_image_5d.ij_to_ind(i, j, index);
 
@@ -105,7 +105,7 @@ namespace duho
             }
         }
 
-        return image;
+        return image;// + Eigen::MatrixXd::Constant(image.rows(), image.cols(), 125);
     }
 
     Eigen::MatrixXd superpixel_generation::normalize_data(Eigen::MatrixXd image)
@@ -116,7 +116,7 @@ namespace duho
         image.rowwise() -= image.colwise().minCoeff();
         image *= range.asDiagonal();
 
-        return image + Eigen::MatrixXd();
+        return image;
     }
 
     superpixel_generation::augmented_matrix::augmented_matrix(const Eigen::MatrixXd &matrix) : Eigen::MatrixXd(matrix.rows(), matrix.cols()+2), size(std::sqrt(matrix.rows()))
