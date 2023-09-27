@@ -1,4 +1,4 @@
-//#include <execution>
+#include <execution>
 #include <iostream>
 
 #include "algorithm.h"
@@ -23,19 +23,28 @@ namespace duho
         const int interval = static_cast<int>(std::sqrt(m_feature_size));
 
         // TODO parallelize this
-        for (size_t k = 0; k < m_K; ++k)
+        std::vector<size_t> indices = std::vector<size_t>(m_K);
+        std::iota(indices.begin(), indices.end(), 0);
+        std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t k)
         {
+//        for (size_t k = 0; k < m_K; ++k)
+//        {
+            // TODO fix this, it sometimes crashes because it generates out of bound indices
             int i = ((static_cast<int>(k) % per_row)+0.5)*interval,
                 j = ((static_cast<int>(k) / per_row)+0.5)*interval,
                 ind;
             m_image_5d.ij_to_ind(i, j, ind);
             m_centers[k] = m_image_5d.row(ind);
-        }
+        });
 
         while (m_beta > 0) // TODO implement m_alpha criterion
         {
             // Step 2 : Assign each pixel to the cluster center with the smallest distance
             // TODO parallelize this
+//            indices.resize(m_image_5d.rows());
+//            std::iota(indices.begin(), indices.end(), 0);
+//            std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
+//            {
             for (size_t ind = 0; ind < m_image_5d.rows(); ++ind)
             {
                 Eigen::Vector<double, 5> pixel = m_image_5d.row(ind);
@@ -51,12 +60,16 @@ namespace duho
                     }
                 }
                 m_clusters[index].m_pixels.emplace_back(pixel.tail(2));
-            }
+            }/*);*/
 
             // Step 3 : Update the cluster centers by averaging xy coordinates. This (probably) works because superpixels seem to be convex shapes.
             // TODO parallelize this
-            for (size_t k = 0; k < m_K; ++k)
+            indices.resize(m_K);
+            std::iota(indices.begin(), indices.end(), 0);
+            std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t k)
             {
+//            for (size_t k = 0; k < m_K; ++k)
+//            {
                 Eigen::Vector<double, 2> center = Eigen::Vector<double, 2>::Zero();
                 for (size_t ind = 0; ind < m_clusters[k].m_pixels.size(); ++ind)
                 {
@@ -67,10 +80,8 @@ namespace duho
                 int ind;
                 m_image_5d.ij_to_ind(center(0), center(1), ind);
 
-
-                Eigen::Matrix<double, 5, 1> row = m_image_5d.row(ind);
-                m_centers[k] = row;
-            }
+                m_centers[k] = m_image_5d.row(ind);
+            });
 
             --m_beta;
         }
@@ -100,8 +111,7 @@ namespace duho
                     index;
                 m_image_5d.ij_to_ind(i, j, index);
 
-                Eigen::Vector3d row {k, k, k};
-                image.row(index) = row;
+                image.row(index) = Eigen::Vector3d::Constant(k);
             }
         }
 
@@ -122,14 +132,18 @@ namespace duho
     superpixel_generation::augmented_matrix::augmented_matrix(const Eigen::MatrixXd &matrix) : Eigen::MatrixXd(matrix.rows(), matrix.cols()+2), size(std::sqrt(matrix.rows()))
     {
         block(0,0,matrix.rows(),matrix.cols()) = matrix;
-        for (size_t ind = 0; ind < rows(); ++ind)
+        std::vector<size_t> indices = std::vector<size_t>(rows());
+        std::iota(indices.begin(), indices.end(), 0);
+        std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
         {
+//        for (size_t ind = 0; ind < rows(); ++ind)
+//        {
             int i, j;
             ind_to_ij(ind, i, j);
             Eigen::MatrixXd coord(1,2);
             coord << i, j;
             row(ind).tail(2) = coord / size; // same as block(ind,matrix.cols(),1,2) = coord / size;
-        }
+        });
     }
 
     void superpixel_generation::augmented_matrix::ind_to_ij(int ind, int &i, int &j) const

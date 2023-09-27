@@ -41,8 +41,10 @@ endif()
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/eigen)
 
 find_package(PNG REQUIRED)
+find_package(TBB REQUIRED COMPONENTS tbb)
 target_include_directories(${PROJECT_NAME}
         PRIVATE ${PNG_INCLUDE_DIR}
         PRIVATE third_party/eigen)
 target_link_libraries(${PROJECT_NAME}
-        PRIVATE ${PNG_LIBRARY})
+        PRIVATE ${PNG_LIBRARY}
+        PRIVATE tbb)
