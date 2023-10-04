@@ -1,5 +1,7 @@
+#include <chrono>
 #include <execution>
 #include <iostream>
+#include <mutex>
 
 #include "algorithm.h"
 
@@ -16,6 +18,9 @@ namespace duho
 
     std::vector<superpixel> superpixel_generation::generate_superpixels()
     {
+        std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
+
+
 //        augmented_matrix image_5d = augmented_matrix(m_image);
 
         // Step 1 : Initialize K cluster centers
@@ -37,16 +42,18 @@ namespace duho
             m_centers[k] = m_image_5d.row(ind);
         });
 
+        std::vector<std::mutex> mutexes(m_K);
+
         while (m_beta > 0) // TODO implement m_alpha criterion
         {
             // Step 2 : Assign each pixel to the cluster center with the smallest distance
             // TODO parallelize this
-//            indices.resize(m_image_5d.rows());
-//            std::iota(indices.begin(), indices.end(), 0);
-//            std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
-//            {
-            for (size_t ind = 0; ind < m_image_5d.rows(); ++ind)
+            indices.resize(m_image_5d.rows());
+            std::iota(indices.begin(), indices.end(), 0);
+            std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
             {
+//            for (size_t ind = 0; ind < m_image_5d.rows(); ++ind)
+//            {
                 Eigen::Vector<double, 5> pixel = m_image_5d.row(ind);
                 double d = weighted_euclidian_distance_squared(pixel, m_centers[0], m_weights);
                 size_t index = 0;
@@ -59,8 +66,9 @@ namespace duho
                         index = k;
                     }
                 }
+                std::lock_guard<std::mutex> lock(mutexes[index]);
                 m_clusters[index].m_pixels.emplace_back(pixel.tail(2));
-            }/*);*/
+            });
 
             // Step 3 : Update the cluster centers by averaging xy coordinates. This (probably) works because superpixels seem to be convex shapes.
             // TODO parallelize this
@@ -88,6 +96,9 @@ namespace duho
 
         // Step 4 : Repeat steps 2 and 3 until convergence or stopping criterion is met
 
+        std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
+        std::cout << "Superpixel generation execution time : " << duration.count() << "s" << std::endl; // Return the duration in seconds
 
         return m_clusters;
     }
