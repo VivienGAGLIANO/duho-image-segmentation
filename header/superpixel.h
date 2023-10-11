@@ -18,8 +18,7 @@ public:
 
 
     static bool connected(const superpixel &sp1, const superpixel &sp2);
-    static std::vector<superpixel> generate_superpixels(const Eigen::MatrixXd &image);
-
+    static double dist_1(const Eigen::Vector2d &u, const Eigen::Vector2d &v);
 
 //private:
     std::vector<Eigen::Vector2d> m_pixels;

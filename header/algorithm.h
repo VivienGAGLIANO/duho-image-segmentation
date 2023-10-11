@@ -8,6 +8,7 @@
 
 namespace duho
 {
+    /****************************** Superpixel Generation ******************************/
 
     class superpixel_generation
     {
@@ -52,13 +53,39 @@ namespace duho
     };
 
 
+    /****************************** Region Growing Segmentation ******************************/
+
     class region_growing_segmentation
     {
     public:
-        region_growing_segmentation();
-        ~region_growing_segmentation();
+        explicit region_growing_segmentation(const std::vector<superpixel> &superpixels);
+        ~region_growing_segmentation()=default;
 
-        static std::vector<superpixel> segment(const Eigen::MatrixXd &image, const std::vector<superpixel> &superpixels);
+        std::vector<superpixel> segment(const Eigen::MatrixXd &image, const std::vector<superpixel> &superpixels);
+
+    private:
+        class region
+        {
+        public:
+            region()=default;
+
+            void add_superpixel(const superpixel &sp);
+
+            double get_mean() const;
+            double get_variance() const;
+            double get_size() const;
+
+            static bool connected(const region &r, const superpixel &sp);
+        private:
+            std::vector<superpixel> m_superpixels;
+            double m_mean;
+            double m_variance;
+        };
+
+        std::vector<region> m_regions;
+        std::vector<superpixel> m_superpixels;
+        std::vector<int> m_unvisited; // stored as indices of superpixels
+
     };
 
 } // duho

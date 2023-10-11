@@ -2,11 +2,13 @@
 #include <execution>
 #include <iostream>
 #include <mutex>
+#include <random>
 
 #include "algorithm.h"
 
 namespace duho
 {
+    /*********************** Superpixel generation ***********************/
 
     superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, int K, bool normalize) :
         m_feature_size(feature_size),
@@ -140,7 +142,9 @@ namespace duho
         return image;
     }
 
-    superpixel_generation::augmented_matrix::augmented_matrix(const Eigen::MatrixXd &matrix) : Eigen::MatrixXd(matrix.rows(), matrix.cols()+2), size(std::sqrt(matrix.rows()))
+    superpixel_generation::augmented_matrix::augmented_matrix(const Eigen::MatrixXd &matrix) :
+        Eigen::MatrixXd(matrix.rows(), matrix.cols()+2),
+        size(std::sqrt(matrix.rows()))
     {
         block(0,0,matrix.rows(),matrix.cols()) = matrix;
         std::vector<size_t> indices = std::vector<size_t>(rows());
@@ -173,5 +177,39 @@ namespace duho
     {
         return size;
     }
+
+
+    /*********************** Region growing segmentation ***********************/
+
+    std::vector<superpixel> region_growing_segmentation::segment(const Eigen::MatrixXd &image, const std::vector<superpixel> &superpixels)
+    {
+        std::vector<int> out;
+        std::sample(m_unvisited.cbegin(), m_unvisited.cend(), out.begin(), 1, std::mt19937{std::random_device{}()});
+
+
+        return std::vector<superpixel>();
+    }
+
+    region_growing_segmentation::region_growing_segmentation(const std::vector<superpixel> &superpixels) :
+        m_superpixels(superpixels),
+        m_unvisited(superpixels.size())
+    {}
+
+
+
+    void region_growing_segmentation::region::add_superpixel(const superpixel &sp)
+    {
+
+    }
+
+    bool region_growing_segmentation::region::connected(const region_growing_segmentation::region &r, const superpixel &sp)
+    {
+        for (auto it = r.m_superpixels.cbegin(); it != r.m_superpixels.cend(); ++it)
+            if (superpixel::connected(*it, sp))
+                return true;
+
+        return false;
+    }
+
 
 } // duho
