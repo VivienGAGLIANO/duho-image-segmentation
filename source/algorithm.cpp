@@ -199,7 +199,18 @@ namespace duho
 
     void region_growing_segmentation::region::add_superpixel(const superpixel &sp)
     {
+        double distance = weighted_distance_squared(*this, sp);
+        auto iterator = std::upper_bound(m_distances.cbegin(), m_distances.cend(), distance);
 
+        // by inserting the superpixel and the distance in the right place we build our vectors sorted by distance to region
+        m_superpixels.insert(m_superpixels.begin()+std::distance(m_distances.cbegin(), iterator), sp);
+        m_distances.insert(iterator, distance);
+
+        // update region mean
+        m_mean = (m_mean * (m_superpixels.size()-1) + sp.m_mean) / m_superpixels.size();
+
+        // TODO updante quantiles and inter quantile range
+        // Or just recompute them from scratch every time, depends what is faster
     }
 
     bool region_growing_segmentation::region::connected(const region_growing_segmentation::region &r, const superpixel &sp)
@@ -209,6 +220,11 @@ namespace duho
                 return true;
 
         return false;
+    }
+
+    double region_growing_segmentation::region::weighted_distance_squared(const region_growing_segmentation::region &r, const superpixel &sp)
+    {
+        return sp.m_mean.transpose() * W3.asDiagonal() * sp.m_mean;
     }
 
 

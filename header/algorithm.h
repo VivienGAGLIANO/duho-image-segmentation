@@ -8,6 +8,8 @@
 
 namespace duho
 {
+    const Eigen::Vector3d W3 = {1, 1, 1};
+
     /****************************** Superpixel Generation ******************************/
 
     class superpixel_generation
@@ -75,11 +77,13 @@ namespace duho
             double get_variance() const;
             double get_size() const;
 
+            static double weighted_distance_squared(const region &r, const superpixel &sp);
             static bool connected(const region &r, const superpixel &sp);
+
         private:
             std::vector<superpixel> m_superpixels;
-            double m_mean;
-            double m_variance;
+            std::vector<double> m_distances;
+            Eigen::Vector3d m_mean; // this should always be updated with superpixels currently present in the region
         };
 
         std::vector<region> m_regions;
