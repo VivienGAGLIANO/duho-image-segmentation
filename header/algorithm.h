@@ -5,6 +5,7 @@
 
 #include "Eigen/Core"
 #include "superpixel.h"
+#include "eigen_image.h"
 
 namespace duho
 {
@@ -16,29 +17,16 @@ namespace duho
     {
     public:
         superpixel_generation()=delete;
-        superpixel_generation(Eigen::MatrixXd &image, double feature_size, int K, bool normalize = true);
+        superpixel_generation(augmented_matrix &image, double feature_size, int K);
         ~superpixel_generation()=default;
 
         std::vector<superpixel> generate_superpixels();
         Eigen::MatrixXd clusters_to_image() const;
 
-        static Eigen::MatrixXd normalize_data(Eigen::MatrixXd image);
         static double weighted_euclidian_distance_squared(const Eigen::Vector<double, 5> &x, const Eigen::Vector<double, 5> &y, const Eigen::Vector<double, 5> &weights);
 
     private:
-        class augmented_matrix : public Eigen::MatrixXd
-        {
-        public:
-            explicit augmented_matrix(const Eigen::MatrixXd &matrix);
 
-            void ind_to_ij(int ind, int &i, int &j) const;
-            void ij_to_ind(int i, int j, int &ind) const;
-
-            int get_size() const;
-
-        private:
-            int size;
-        };
 
     public: //(this should be private)
         const double m_feature_size;
@@ -51,7 +39,7 @@ namespace duho
         std::vector<Eigen::Matrix<double, 5, 1>> m_centers;
         std::vector<superpixel> m_clusters;
 
-        augmented_matrix m_image_5d;
+        augmented_matrix &m_image_5d;
     };
 
 
@@ -84,6 +72,8 @@ namespace duho
             std::vector<superpixel> m_superpixels;
             std::vector<double> m_distances;
             Eigen::Vector3d m_mean; // this should always be updated with superpixels currently present in the region
+            int q1, q2, q3;
+            double iqr;
         };
 
         std::vector<region> m_regions;

@@ -2,7 +2,9 @@
 #define DUHO_SUPERPIXEL_H
 
 #include <vector>
+
 #include "Eigen/Dense"
+#include "eigen_image.h"
 
 namespace duho
 {
@@ -11,8 +13,8 @@ class superpixel
 {
 public:
     // constructors and destructors
-    superpixel();
-    explicit superpixel(const std::vector<Eigen::Vector2d> &pixels);
+    superpixel(const std::vector<Eigen::Vector2d> &pixels, augmented_matrix &image);
+    superpixel operator=(const superpixel &sp);
 
     ~superpixel();
 
@@ -25,8 +27,8 @@ public:
 //private:
     std::vector<Eigen::Vector2d> m_pixels;
     Eigen::Vector3d m_mean; // this should always be updated with pixels currently present in the superpixel
-    int q1, q2, q3;
-    double iqr;
+
+    augmented_matrix &m_image;
 };
 
 } // duho

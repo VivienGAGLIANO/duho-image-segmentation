@@ -2,10 +2,12 @@
 
 namespace duho
 {
+    superpixel::superpixel(const std::vector<Eigen::Vector2d> &pixels, augmented_matrix &image) : m_pixels(pixels), m_image(image) {}
 
-    superpixel::superpixel() : m_pixels() {}
-
-    superpixel::superpixel(const std::vector<Eigen::Vector2d> &pixels) : m_pixels(pixels) {}
+    superpixel superpixel::operator=(const superpixel &sp)
+    {
+        return superpixel(sp.m_pixels, m_image);
+    }
 
     superpixel::~superpixel()
     {
@@ -32,7 +34,7 @@ namespace duho
         m_pixels.push_back(pixel);
 
         // update mean
-        m_mean = (m_mean * (m_pixels.size()-1) + pixel) / m_pixels.size(); // TODO needs access to image
+//        m_mean = (m_mean * (m_pixels.size()-1) + pixel) / m_pixels.size(); // TODO needs access to image
     }
 
 } // duho
