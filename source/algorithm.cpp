@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "algorithm.h"
+#include "utils.h"
 
 namespace duho
 {
@@ -122,7 +123,8 @@ namespace duho
                     index;
                 m_image_5d.ij_to_ind(i, j, index);
 
-                image.row(index) = Eigen::Vector3d::Constant(k);
+//                image.row(index) = Eigen::Vector3d::Constant(k);
+                image.row(index) = color_hash(k);
             }
         }
 

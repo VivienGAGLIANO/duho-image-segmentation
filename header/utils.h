@@ -6,7 +6,7 @@
 #include <cmath>
 
 // RGB to XYZ conversion
-void rgb_to_xyz(double r, double g, double b, double &x, double &y, double &z)
+inline void rgb_to_xyz(double r, double g, double b, double &x, double &y, double &z)
 {
     r /= 255.0;
     g /= 255.0;
@@ -31,7 +31,7 @@ void rgb_to_xyz(double r, double g, double b, double &x, double &y, double &z)
 }
 
 // XYZ to L*a*b* conversion
-void xyz_to_lab(double x, double y, double z, double &l, double &a, double &b)
+inline void xyz_to_lab(double x, double y, double z, double &l, double &a, double &b)
 {
     x /= 95.047;
     y /= 100.000;
@@ -52,7 +52,7 @@ void xyz_to_lab(double x, double y, double z, double &l, double &a, double &b)
 }
 
 // Convert RGB image to L*a*b* color space
-void rgb_image_to_lab(png::image<png::rgb_pixel> &image)
+inline void rgb_image_to_lab(png::image<png::rgb_pixel> &image)
 {
     for (size_t y = 0; y < image.get_height(); ++y)
     {
@@ -81,6 +81,14 @@ void rgb_image_to_lab(png::image<png::rgb_pixel> &image)
 }
 
 // Color hash function from integer to RGB
+inline Eigen::Vector3d color_hash(int i)
+{
+    int r = (i & 0x000000FF) >>  0; // TODO what the fuck does this do ?
+    int g = (i & 0x0000FF00) >>  8;
+    int b = (i & 0x00FF0000) >> 16;
+
+    return Eigen::Vector3d(r, g, b);
+}
 
 
 #endif //DUHO_UTILS_H
