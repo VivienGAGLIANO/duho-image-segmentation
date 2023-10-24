@@ -2,19 +2,21 @@
 #include <execution>
 #include <iostream>
 #include <mutex>
+#include <random>
 
 #include "algorithm.h"
 #include "utils.h"
 
 namespace duho
 {
+    /*********************** Superpixel generation ***********************/
 
-    superpixel_generation::superpixel_generation(Eigen::MatrixXd &image, double feature_size, int K, bool normalize) :
+    superpixel_generation::superpixel_generation(augmented_matrix &image, double feature_size, int K) :
         m_feature_size(feature_size),
-        m_K(K)/*, m_image(image)*/,
+        m_K(K),
         m_centers(K),
-        m_clusters(K),
-        m_image_5d(normalize ? normalize_data(image) : image)
+        m_clusters(K, superpixel(std::vector<Eigen::Vector2d>(), image)),
+        m_image_5d(image)
     {}
 
     std::vector<superpixel> superpixel_generation::generate_superpixels()
@@ -28,7 +30,6 @@ namespace duho
         const int per_row = static_cast<int>(std::sqrt(m_K));
         const int interval = static_cast<int>(std::sqrt(m_feature_size));
 
-        // TODO parallelize this
         std::vector<size_t> indices = std::vector<size_t>(m_K);
         std::iota(indices.begin(), indices.end(), 0);
         std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t k)
@@ -48,7 +49,6 @@ namespace duho
         while (m_beta > 0) // TODO implement m_alpha criterion
         {
             // Step 2 : Assign each pixel to the cluster center with the smallest distance
-            // TODO parallelize this
             indices.resize(m_image_5d.rows());
             std::iota(indices.begin(), indices.end(), 0);
             std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
@@ -72,7 +72,6 @@ namespace duho
             });
 
             // Step 3 : Update the cluster centers by averaging xy coordinates. This (probably) works because superpixels seem to be convex shapes.
-            // TODO parallelize this
             indices.resize(m_K);
             std::iota(indices.begin(), indices.end(), 0);
             std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t k)
@@ -85,7 +84,7 @@ namespace duho
                     center += m_clusters[k].m_pixels[ind];
                 }
                 if (!m_clusters[k].m_pixels.empty())
-                    center /= (double)m_clusters[k].m_pixels.size() / m_image_5d.get_size();
+                    center /= (double)m_clusters[k].m_pixels.size() / m_image_5d.size;
                 int ind;
                 m_image_5d.ij_to_ind(center(0), center(1), ind);
 
@@ -118,8 +117,8 @@ namespace duho
         {
             for (size_t ind = 0; ind < m_clusters[k].m_pixels.size(); ++ind)
             {
-                int i = m_clusters[k].m_pixels[ind](0)*m_image_5d.get_size(),
-                    j = m_clusters[k].m_pixels[ind](1)*m_image_5d.get_size(),
+                int i = m_clusters[k].m_pixels[ind](0)*m_image_5d.size,
+                    j = m_clusters[k].m_pixels[ind](1)*m_image_5d.size,
                     index;
                 m_image_5d.ij_to_ind(i, j, index);
 
@@ -131,49 +130,57 @@ namespace duho
         return image;// + Eigen::MatrixXd::Constant(image.rows(), image.cols(), 125);
     }
 
-    Eigen::MatrixXd superpixel_generation::normalize_data(Eigen::MatrixXd image)
+
+    /*********************** Region growing segmentation ***********************/
+
+    std::vector<superpixel> region_growing_segmentation::segment(const Eigen::MatrixXd &image, const std::vector<superpixel> &superpixels)
     {
-        Eigen::VectorXd range = (image.colwise().maxCoeff() - image.colwise().minCoeff());
-        range = 1./range.array();
+        std::vector<int> out;
+        std::sample(m_unvisited.cbegin(), m_unvisited.cend(), out.begin(), 1, std::mt19937{std::random_device{}()});
 
-        image.rowwise() -= image.colwise().minCoeff();
-        image *= range.asDiagonal();
 
-        return image;
+        return std::vector<superpixel>();
     }
 
-    superpixel_generation::augmented_matrix::augmented_matrix(const Eigen::MatrixXd &matrix) : Eigen::MatrixXd(matrix.rows(), matrix.cols()+2), size(std::sqrt(matrix.rows()))
+    region_growing_segmentation::region_growing_segmentation(const std::vector<superpixel> &superpixels) :
+        m_superpixels(superpixels),
+        m_unvisited(superpixels.size())
+    {}
+
+
+
+    void region_growing_segmentation::region::add_superpixel(const superpixel &sp)
     {
-        block(0,0,matrix.rows(),matrix.cols()) = matrix;
-        std::vector<size_t> indices = std::vector<size_t>(rows());
-        std::iota(indices.begin(), indices.end(), 0);
-        std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
-        {
-//        for (size_t ind = 0; ind < rows(); ++ind)
-//        {
-            int i, j;
-            ind_to_ij(ind, i, j);
-            Eigen::MatrixXd coord(1,2);
-            coord << i, j;
-            row(ind).tail(2) = coord / size; // same as block(ind,matrix.cols(),1,2) = coord / size;
-        });
+        double distance = weighted_distance_squared(*this, sp);
+        auto iterator = std::upper_bound(m_distances.cbegin(), m_distances.cend(), distance);
+
+        // by inserting the superpixel and the distance in the right place we build our vectors sorted by distance to region
+        m_superpixels.insert(m_superpixels.begin()+std::distance(m_distances.cbegin(), iterator), sp);
+        m_distances.insert(iterator, distance);
+
+        // update region mean
+        m_mean = (m_mean * (m_superpixels.size()-1) + sp.m_mean) / m_superpixels.size();
+
+        // update quantiles
+        q1 = m_distances.size() / 4;
+        q2 = 2 * m_distances.size() / 4;
+        q3 = 3 * m_distances.size() / 4;
+        iqr = m_distances[q3] - m_distances[q1];
     }
 
-    void superpixel_generation::augmented_matrix::ind_to_ij(int ind, int &i, int &j) const
+    bool region_growing_segmentation::region::connected(const region_growing_segmentation::region &r, const superpixel &sp)
     {
-        // here we make the assumption that the original image is square
-        i = ind % (int)size;
-        j = ind / (int)size;
+        for (auto it = r.m_superpixels.cbegin(); it != r.m_superpixels.cend(); ++it)
+            if (superpixel::connected(*it, sp))
+                return true;
+
+        return false;
     }
 
-    void superpixel_generation::augmented_matrix::ij_to_ind(int i, int j, int &ind) const
+    double region_growing_segmentation::region::weighted_distance_squared(const region_growing_segmentation::region &r, const superpixel &sp)
     {
-        ind = j * (int)size + i;
+        return sp.m_mean.transpose() * W3.asDiagonal() * sp.m_mean;
     }
 
-    int superpixel_generation::augmented_matrix::get_size() const
-    {
-        return size;
-    }
 
 } // duho

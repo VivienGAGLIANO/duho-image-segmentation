@@ -1,6 +1,8 @@
 #ifndef DUHO_EIGEN_IMAGE_H
 #define DUHO_EIGEN_IMAGE_H
 
+#include <execution>
+
 #include "Eigen/Dense"
 #include "png++/image.hpp"
 
@@ -8,11 +10,11 @@ namespace duho
 {
 
 template <typename T>
-Eigen::MatrixXd image_to_matrix(const png::image<T> &image);
+inline Eigen::MatrixXd image_to_matrix(const png::image<T> &image);
 
 // Only handles RGB images for now
 template <>
-Eigen::MatrixXd image_to_matrix(const png::image<png::rgb_pixel> &image)
+inline Eigen::MatrixXd image_to_matrix(const png::image<png::rgb_pixel> &image)
 {
     // Check if image is non-empty
     if (image.get_width() == 0 || image.get_height() == 0)
@@ -39,7 +41,7 @@ template <typename T>
 png::image<T> matrix_to_image(const Eigen::MatrixXd &matrix, const Eigen::Vector2i &dimensions);
 
 template <>
-png::image<png::rgb_pixel> matrix_to_image(const Eigen::MatrixXd &matrix, const Eigen::Vector2i &dimensions)
+inline png::image<png::rgb_pixel> matrix_to_image(const Eigen::MatrixXd &matrix, const Eigen::Vector2i &dimensions)
 {
     // Check if matrix is non-empty
     if (matrix.rows() == 0 || matrix.cols() == 0)
@@ -64,6 +66,45 @@ png::image<png::rgb_pixel> matrix_to_image(const Eigen::MatrixXd &matrix, const 
 
     return image;
 }
+
+struct augmented_matrix : public Eigen::MatrixXd
+{
+public:
+    explicit augmented_matrix(const Eigen::MatrixXd &matrix) :
+        Eigen::MatrixXd(matrix.rows(), matrix.cols()+2),
+        size(std::sqrt(matrix.rows()))
+    {
+        {
+            block(0,0,matrix.rows(),matrix.cols()) = matrix;
+            std::vector<size_t> indices = std::vector<size_t>(rows());
+            std::iota(indices.begin(), indices.end(), 0);
+            std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
+            {
+//        for (size_t ind = 0; ind < rows(); ++ind)
+//        {
+                int i, j;
+                ind_to_ij(ind, i, j);
+                Eigen::MatrixXd coord(1,2);
+                coord << i, j;
+                row(ind).tail(2) = coord / size; // same as block(ind,matrix.cols(),1,2) = coord / size;
+            });
+        }
+    }
+
+    inline void ind_to_ij(int ind, int &i, int &j) const
+    {
+        // here we make the assumption that the original image is square
+        i = ind % (int)size;
+        j = ind / (int)size;
+    }
+
+    inline void ij_to_ind(int i, int j, int &ind) const
+    {
+        ind = j * (int)size + i;
+    }
+
+    int size;
+};
 
 } // duho
 
