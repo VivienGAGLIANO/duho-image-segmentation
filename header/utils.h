@@ -55,7 +55,7 @@ namespace duho
     }
 
     // Convert RGB image to L*a*b* color space
-    void rgb_image_to_lab(png::image<png::rgb_pixel> &image)
+    inline void rgb_image_to_lab(png::image<png::rgb_pixel> &image)
     {
         for (size_t y = 0; y < image.get_height(); ++y)
         for (size_t x = 0; x < image.get_width(); ++x)
@@ -81,7 +81,7 @@ namespace duho
         }
     }
 
-    Eigen::MatrixXd normalize_data(Eigen::MatrixXd image)
+    inline Eigen::MatrixXd normalize_data(Eigen::MatrixXd image)
     {
         Eigen::VectorXd range = (image.colwise().maxCoeff() - image.colwise().minCoeff());
         range = 1. / range.array();
@@ -95,9 +95,9 @@ namespace duho
     // Color hash function from integer to RGB
     inline Eigen::Vector3d color_hash(int i)
     {
-        int r = (i & 0x000000FF) >>  0; // TODO what the fuck does this do ?
-        int g = (i & 0x0000FF00) >>  8;
-        int b = (i & 0x00FF0000) >> 16;
+        uint8_t r = static_cast<uint8_t>((i * 2654435761U) % 256);
+        uint8_t g = static_cast<uint8_t>((i * 2654435761U * 2) % 256);
+        uint8_t b = static_cast<uint8_t>((i * 2654435761U * 3) % 256);
 
         return Eigen::Vector3d(r, g, b);
     }
