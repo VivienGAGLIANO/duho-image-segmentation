@@ -68,7 +68,7 @@ namespace duho
                     }
                 }
                 std::lock_guard<std::mutex> lock(mutexes[index]);
-                m_clusters[index].m_pixels.emplace_back(pixel.tail(2));
+                m_clusters[index].add_pixel(pixel.tail(2));
             });
 
             // Step 3 : Update the cluster centers by averaging xy coordinates. This (probably) works because superpixels seem to be convex shapes.
@@ -137,8 +137,9 @@ namespace duho
         auto iterator = std::upper_bound(m_distances.cbegin(), m_distances.cend(), distance);
 
         // by inserting the superpixel and the distance in the right place we build our vectors sorted by distance to region
-        m_superpixels.insert(m_superpixels.begin()+std::distance(m_distances.cbegin(), iterator), sp);
-        m_distances.insert(iterator, distance);
+        auto index = std::distance(m_distances.cbegin(), iterator);
+        m_superpixels.emplace(m_superpixels.begin()+index, sp);
+        m_distances.emplace(iterator, distance);
 
         // update region mean
         m_mean = (m_mean * (m_superpixels.size()-1) + sp.m_mean) / m_superpixels.size();

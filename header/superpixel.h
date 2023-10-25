@@ -16,7 +16,7 @@ public:
     superpixel(const std::vector<Eigen::Vector2d> &pixels, augmented_matrix &image);
     superpixel operator=(const superpixel &sp);
 
-    ~superpixel();
+//    ~superpixel()=default;
 
     void add_pixel(const Eigen::Vector2d &pixel);
 

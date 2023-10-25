@@ -2,14 +2,16 @@
 
 namespace duho
 {
-    superpixel::superpixel(const std::vector<Eigen::Vector2d> &pixels, augmented_matrix &image) : m_pixels(pixels), m_image(image) {}
+    superpixel::superpixel(const std::vector<Eigen::Vector2d> &pixels, augmented_matrix &image) : m_image(image)
+    {
+        for (const Eigen::Vector2d &pixel : pixels)
+            add_pixel(pixel);
+    }
 
     superpixel superpixel::operator=(const superpixel &sp)
     {
         return superpixel(sp.m_pixels, m_image);
     }
-
-    superpixel::~superpixel() {}
 
     bool superpixel::connected(const superpixel &sp1, const superpixel &sp2)
     {
