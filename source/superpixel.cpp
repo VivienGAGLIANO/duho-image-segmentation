@@ -9,10 +9,7 @@ namespace duho
         return superpixel(sp.m_pixels, m_image);
     }
 
-    superpixel::~superpixel()
-    {
-        m_pixels.clear();
-    }
+    superpixel::~superpixel() {}
 
     bool superpixel::connected(const superpixel &sp1, const superpixel &sp2)
     {
@@ -34,7 +31,10 @@ namespace duho
         m_pixels.push_back(pixel);
 
         // update mean
-//        m_mean = (m_mean * (m_pixels.size()-1) + pixel) / m_pixels.size(); // TODO needs access to image
+        int index;
+        m_image.ij_to_ind(pixel.x(), pixel.y(), index);
+        Eigen::Vector<double, 3> color = m_image.row(index).head(3);
+        m_mean = (m_mean * (m_pixels.size()-1) + color) / m_pixels.size();
     }
 
 } // duho

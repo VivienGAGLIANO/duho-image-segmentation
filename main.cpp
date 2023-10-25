@@ -33,15 +33,20 @@ int main(int argc, char **argv)
     matrix = duho::normalize_data(matrix);
     duho::augmented_matrix augmented_matrix(matrix);
 
-    // run algorithm
+    // superpixel generation
     duho::superpixel_generation superpixel_generation(augmented_matrix, feature_size, K);
-    superpixel_generation.generate_superpixels();
+    std::vector<duho::superpixel> superpixels = superpixel_generation.generate_superpixels();
 //    duho::matrix_to_image<png::rgb_pixel>(superpixel_generation.m_image*255., {image.get_width(), image.get_height()}).write(filename.replace(0, 10, "output/").substr(0, filename.size()-4) + "_normalized.png");
 //    image.write("albedo_Lab.png");
-    Eigen::MatrixXd clusters = superpixel_generation.clusters_to_image();
-    duho::matrix_to_image<png::rgb_pixel>(clusters, {image.get_width(), image.get_height()}).write(filename.replace(0, 10, "output/").substr(0, filename.size()-4) + "_clusters.png");
+    Eigen::MatrixXd clusters_image = superpixel_generation.clusters_to_image();
+    duho::matrix_to_image<png::rgb_pixel>(clusters_image, {image.get_width(), image.get_height()}).write(filename.replace(0, 10, "output/").substr(0, filename.size()-4) + "_clusters.png");
 
-    std::cout << "Still working" << std::endl;
+    // unseeded region-growing segmentation
+    duho::region_growing_segmentation region_growing_segmentation(superpixels, augmented_matrix);
+    region_growing_segmentation.segment();
+    Eigen::MatrixXd regions_image = region_growing_segmentation.regions_to_image();
+    duho::matrix_to_image<png::rgb_pixel>(regions_image, {image.get_width(), image.get_height()}).write(filename.replace(0, 10, "output/").substr(0, filename.size()-4) + "_regions.png");
+
 
     return 0;
 }

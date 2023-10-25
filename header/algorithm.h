@@ -47,12 +47,6 @@ namespace duho
 
     class region_growing_segmentation
     {
-    public:
-        explicit region_growing_segmentation(const std::vector<superpixel> &superpixels);
-        ~region_growing_segmentation()=default;
-
-        std::vector<superpixel> segment(const Eigen::MatrixXd &image, const std::vector<superpixel> &superpixels);
-
     private:
         class region
         {
@@ -60,7 +54,9 @@ namespace duho
             region()=default;
 
             void add_superpixel(const superpixel &sp);
+            bool is_outlier(double distance) const;
 
+            const std::vector<superpixel> get_superpixels() const;
             double get_mean() const;
             double get_variance() const;
             double get_size() const;
@@ -72,14 +68,26 @@ namespace duho
             std::vector<superpixel> m_superpixels;
             std::vector<double> m_distances;
             Eigen::Vector3d m_mean; // this should always be updated with superpixels currently present in the region
-            int q1, q2, q3;
-            double iqr;
+            int q1=0, q2=0, q3=0;
+            double iqr=0;
         };
+
+
+    public:
+        region_growing_segmentation(const std::vector<superpixel> &superpixels, augmented_matrix &image);
+        ~region_growing_segmentation()=default;
+
+        std::vector<region> segment();
+        Eigen::MatrixXd regions_to_image() const;
+
+
+    private:
+        void handle_superpixel(const superpixel &sp);
 
         std::vector<region> m_regions;
         std::vector<superpixel> m_superpixels;
         std::vector<int> m_unvisited; // stored as indices of superpixels
-
+        augmented_matrix &m_image_5d;
     };
 
 } // duho
