@@ -8,9 +8,13 @@ namespace duho
             add_pixel(pixel);
     }
 
-    superpixel superpixel::operator=(const superpixel &sp)
+    superpixel &superpixel::operator=(const superpixel &sp)
     {
-        return superpixel(sp.m_pixels, m_image);
+        m_pixels = sp.m_pixels;
+        m_mean = sp.m_mean;
+        m_image = sp.m_image;
+
+        return *this;
     }
 
     bool superpixel::connected(const superpixel &sp1, const superpixel &sp2)

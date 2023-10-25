@@ -14,7 +14,7 @@ class superpixel
 public:
     // constructors and destructors
     superpixel(const std::vector<Eigen::Vector2d> &pixels, augmented_matrix &image);
-    superpixel operator=(const superpixel &sp);
+    superpixel &operator=(const superpixel &sp);
 
 //    ~superpixel()=default;
 

@@ -19,6 +19,7 @@ namespace duho
         m_image_5d(image)
     {}
 
+    // TODO this returns garbage, superpixels share common pixels
     std::vector<superpixel> superpixel_generation::generate_superpixels()
     {
         std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
@@ -36,9 +37,8 @@ namespace duho
         {
 //        for (size_t k = 0; k < m_K; ++k)
 //        {
-            // TODO fix this, it sometimes crashes because it generates out of bound indices
-            int i = ((static_cast<int>(k) % per_row)+0.5)*interval,
-                j = ((static_cast<int>(k) / per_row)+0.5)*interval,
+            int i = ((static_cast<int>(k) % per_row))*interval,
+                j = ((static_cast<int>(k) / per_row))*interval,
                 ind;
             m_image_5d.ij_to_ind(i, j, ind);
             m_centers[k] = m_image_5d.row(ind);
@@ -92,6 +92,7 @@ namespace duho
             });
 
             --m_beta;
+            // TODO probably reset clusters somewhere, otherwise they keep accumulating pixels over the different iterations
         }
 
         // Step 4 : Repeat steps 2 and 3 until convergence or stopping criterion is met
