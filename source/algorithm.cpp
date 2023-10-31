@@ -48,6 +48,12 @@ namespace duho
 
         while (m_beta > 0) // TODO implement m_alpha criterion
         {
+            // Clear clusters at the beginning of each iteration
+            std::for_each(std::execution::par_unseq, m_clusters.begin(), m_clusters.end(), [&](superpixel &sp)
+            {
+                sp.m_pixels.clear();
+            });
+
             // Step 2 : Assign each pixel to the cluster center with the smallest distance
             indices.resize(m_image_5d.rows());
             std::iota(indices.begin(), indices.end(), 0);
@@ -92,7 +98,6 @@ namespace duho
             });
 
             --m_beta;
-            // TODO probably reset clusters somewhere, otherwise they keep accumulating pixels over the different iterations
         }
 
         // Step 4 : Repeat steps 2 and 3 until convergence or stopping criterion is met
@@ -189,12 +194,14 @@ namespace duho
 
     std::vector<region_growing_segmentation::region> region_growing_segmentation::segment()
     {
+        std::list<int> out(1);
+        auto random_device = std::mt19937{std::random_device{}()};
+
         while (!m_unvisited.empty())
         {
-            std::vector<int> out(1);
-            std::sample(m_unvisited.cbegin(), m_unvisited.cend(), out.begin(), 1, std::mt19937{std::random_device{}()});
-            int index = out[0];
-            m_unvisited.erase(m_unvisited.begin()+index);
+            std::sample(m_unvisited.cbegin(), m_unvisited.cend(), out.begin(), 1, random_device);
+            int index = out.front();
+            m_unvisited.remove(index);
             superpixel sp = m_superpixels[index];
 
             handle_superpixel(sp);

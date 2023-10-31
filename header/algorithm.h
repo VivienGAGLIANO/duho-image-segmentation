@@ -2,6 +2,7 @@
 #define DUHO_ALGORITHM_H
 
 #include <vector>
+#include <list>
 
 #include "Eigen/Core"
 #include "superpixel.h"
@@ -86,7 +87,7 @@ namespace duho
 
         std::vector<region> m_regions;
         std::vector<superpixel> m_superpixels;
-        std::vector<int> m_unvisited; // stored as indices of superpixels
+        std::list<int> m_unvisited; // stored as indices of superpixels
         augmented_matrix &m_image_5d;
     };
 
