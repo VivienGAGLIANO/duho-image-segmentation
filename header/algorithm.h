@@ -48,7 +48,7 @@ namespace duho
 
     class region_growing_segmentation
     {
-    private:
+    public:
         class region
         {
         public:

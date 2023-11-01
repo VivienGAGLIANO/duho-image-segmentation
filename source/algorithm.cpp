@@ -19,7 +19,6 @@ namespace duho
         m_image_5d(image)
     {}
 
-    // TODO this returns garbage, superpixels share common pixels
     std::vector<superpixel> superpixel_generation::generate_superpixels()
     {
         std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
@@ -194,6 +193,8 @@ namespace duho
 
     std::vector<region_growing_segmentation::region> region_growing_segmentation::segment()
     {
+        std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
+
         std::list<int> out(1);
         auto random_device = std::mt19937{std::random_device{}()};
 
@@ -206,6 +207,10 @@ namespace duho
 
             handle_superpixel(sp);
         }
+
+        std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
+        std::cout << "Unseeded segmentation execution time : " << duration.count() << "s" << std::endl; // Return the duration in seconds
 
         return m_regions;
     }
