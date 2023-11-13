@@ -21,12 +21,11 @@ namespace duho
 
     std::vector<superpixel> superpixel_generation::generate_superpixels()
     {
+#ifdef DUHO_TIMER
         std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
+#endif
 
-
-//        augmented_matrix image_5d = augmented_matrix(m_image);
-
-        // Step 1 : Initialize K cluster centers
+        // Step 1 : initialize K cluster centers
         const int per_row = static_cast<int>(std::sqrt(m_K));
         const int interval = static_cast<int>(std::sqrt(m_feature_size));
 
@@ -47,13 +46,13 @@ namespace duho
 
         while (m_beta > 0) // TODO implement m_alpha criterion
         {
-            // Clear clusters at the beginning of each iteration
+            // clear clusters at the beginning of each iteration
             std::for_each(std::execution::par_unseq, m_clusters.begin(), m_clusters.end(), [&](superpixel &sp)
             {
                 sp.m_pixels.clear();
             });
 
-            // Step 2 : Assign each pixel to the cluster center with the smallest distance
+            // Step 2 : assign each pixel to the cluster center with the smallest distance
             indices.resize(m_image_5d.rows());
             std::iota(indices.begin(), indices.end(), 0);
             std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t ind)
@@ -76,7 +75,7 @@ namespace duho
                 m_clusters[index].add_pixel(pixel.tail(2));
             });
 
-            // Step 3 : Update the cluster centers by averaging xy coordinates. This (probably) works because superpixels seem to be convex shapes.
+            // Step 3 : update the cluster centers by averaging xy coordinates. This (probably) works because superpixels seem to be convex shapes.
             indices.resize(m_K);
             std::iota(indices.begin(), indices.end(), 0);
             std::for_each(std::execution::par_unseq, indices.cbegin(), indices.cend(), [&](size_t k)
@@ -99,11 +98,13 @@ namespace duho
             --m_beta;
         }
 
-        // Step 4 : Repeat steps 2 and 3 until convergence or stopping criterion is met
+        // Step 4 : repeat steps 2 and 3 until convergence or stopping criterion is met
 
+#ifdef DUHO_TIMER
         std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
         std::cout << "Superpixel generation execution time : " << duration.count() << "s" << std::endl; // Return the duration in seconds
+#endif
 
         return m_clusters;
     }
@@ -126,11 +127,10 @@ namespace duho
                 index;
             m_image_5d.ij_to_ind(i, j, index);
 
-//                image.row(index) = Eigen::Vector3d::Constant(k);
             image.row(index) = color_hash(k);
         }
 
-        return image;// + Eigen::MatrixXd::Constant(image.rows(), image.cols(), 125);
+        return image;
     }
 
 
@@ -193,7 +193,9 @@ namespace duho
 
     std::vector<region_growing_segmentation::region> region_growing_segmentation::segment()
     {
+#ifdef DUHO_TIMER
         std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
+#endif
 
         std::list<int> out(1);
         auto random_device = std::mt19937{std::random_device{}()};
@@ -208,9 +210,11 @@ namespace duho
             handle_superpixel(sp);
         }
 
+#ifdef DUHO_TIMER
         std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
         std::cout << "Unseeded segmentation execution time : " << duration.count() << "s" << std::endl; // Return the duration in seconds
+#endif
 
         return m_regions;
     }
@@ -231,13 +235,12 @@ namespace duho
                             index;
                     m_image_5d.ij_to_ind(i, j, index);
 
-        //                image.row(index) = Eigen::Vector3d::Constant(region);
                     image.row(index) = color_hash(region);
                 }
             }
         }
 
-        return image;// + Eigen::MatrixXd::Constant(image.rows(), image.cols(), 125);
+        return image;
     }
 
     void region_growing_segmentation::handle_superpixel(const duho::superpixel &sp)
@@ -273,8 +276,5 @@ namespace duho
         else
             m_regions[index].add_superpixel(sp);
     }
-
-
-
 
 } // duho

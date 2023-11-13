@@ -8,9 +8,14 @@
 #include "superpixel.h"
 #include "eigen_image.h"
 
+#define DUHO_TIMER
+
+
 namespace duho
 {
     const Eigen::Vector3d W3 = {1, 1, 1};
+
+    // TODO make image argument const as it's never updated
 
     /****************************** Superpixel Generation ******************************/
 

@@ -60,21 +60,21 @@ namespace duho
         for (size_t y = 0; y < image.get_height(); ++y)
         for (size_t x = 0; x < image.get_width(); ++x)
         {
-            // Get RGB values
+            // get RGB values
             double r = image[y][x].red;
             double g = image[y][x].green;
             double b = image[y][x].blue;
 
-            // Initialize variables for L*a*b* values
+            // initialize variables for L*a*b* values
             double x_val, y_val, z_val, l_val, a_val, b_val;
 
-            // Convert RGB to XYZ
+            // convert RGB to XYZ
             rgb_to_xyz(r, g, b, x_val, y_val, z_val);
 
-            // Convert XYZ to L*a*b*
+            // convert XYZ to L*a*b*
             xyz_to_lab(x_val, y_val, z_val, l_val, a_val, b_val);
 
-            // Store L*a*b* values in the image
+            // store L*a*b* values in the image
             image[y][x].red = static_cast<uint8_t>(l_val);
             image[y][x].green = static_cast<uint8_t>(a_val + 128); // Shift a* to [0, 255]
             image[y][x].blue = static_cast<uint8_t>(b_val + 128);  // Shift b* to [0, 255]
@@ -92,6 +92,24 @@ namespace duho
         return image;
     }
 
+    inline augmented_matrix prepare_data(const png::image<png::rgb_pixel> &image)
+    {
+        // convert RGB image to L*a*b* color space
+        png::image<png::rgb_pixel> lab_image = image;
+        rgb_image_to_lab(lab_image);
+
+        // convert image to matrix
+        Eigen::MatrixXd matrix = image_to_matrix<png::rgb_pixel>(lab_image);
+
+        // normalize data
+        matrix = normalize_data(matrix);
+
+        // add x and y coordinates to matrix for segmentation purposes
+        augmented_matrix augmented_matrix(matrix);
+
+        return augmented_matrix;
+    }
+
     // Color hash function from integer to RGB
     inline Eigen::Vector3d color_hash(int i)
     {
@@ -102,6 +120,49 @@ namespace duho
         return Eigen::Vector3d(r, g, b);
     }
 
+    inline void write_image(const Eigen::MatrixXd &matrix, const Eigen::Vector2i &dimensions, const std::string &resource_path, const std::string &prefix, const std::string &suffix)
+    {
+        // select last part of file path as filename
+        std::string filename = resource_path.substr(resource_path.find_first_of("/\\")+1);
+        filename = prefix + filename.substr(0,filename.find_last_of('.')) + suffix + ".png";
+
+        matrix_to_image<png::rgb_pixel>(matrix, dimensions).write(filename);
+    }
+
+    inline void test_parameters(double fs_min, double fs_max, const std::string &filename, double step=1.0)
+    {
+        assert(fs_min > 0 && fs_min <= fs_max);
+
+        // read image and convert to L*a*b* color space
+        png::image<png::rgb_pixel> image(filename,  png::require_color_space<png::rgb_pixel>());
+        duho::augmented_matrix image_matrix = prepare_data(image);
+
+        double alpha = 2;
+        uint8_t beta = 10;
+        double prev_K = 0;
+
+        for (double fs = fs_min; fs <= fs_max; fs+=step)
+        {
+            // superpixel generation algorithm
+            double K = image.get_width() * image.get_height() / fs;
+            K = pow(int(std::sqrt(K)), 2);
+            if (prev_K == K) continue;
+            prev_K = K;
+
+            // superpixel generation
+            duho::superpixel_generation superpixel_generation(image_matrix, fs, K);
+            std::vector<duho::superpixel> superpixels = superpixel_generation.generate_superpixels();
+            Eigen::MatrixXd clusters_image = superpixel_generation.clusters_to_image();
+            write_image(clusters_image, {image.get_width(), image.get_height()}, filename, "output/", "_clusters_" + std::to_string(static_cast<int>(fs)));
+
+            // unseeded region-growing segmentation
+            duho::region_growing_segmentation region_growing_segmentation(superpixels, image_matrix);
+            std::vector<duho::region_growing_segmentation::region> regions = region_growing_segmentation.segment();
+            Eigen::MatrixXd regions_image = region_growing_segmentation.regions_to_image();
+            write_image(regions_image, {image.get_width(), image.get_height()}, filename, "output/", "_regions_" + std::to_string(static_cast<int>(fs)));
+        }
+
+    }
 
 } // namespace duho
 
