@@ -129,12 +129,12 @@ namespace duho
         matrix_to_image<png::rgb_pixel>(matrix, dimensions).write(filename);
     }
 
-    inline void test_parameters(double fs_min, double fs_max, const std::string &filename, double step=1.0)
+    inline void test_parameters(double fs_min, double fs_max, const std::string &filename, double step=1.0, bool save=false)
     {
         assert(fs_min > 0 && fs_min <= fs_max);
 
         // read image and convert to L*a*b* color space
-        png::image<png::rgb_pixel> image(filename,  png::require_color_space<png::rgb_pixel>());
+        png::image<png::rgb_pixel> image(filename, png::require_color_space<png::rgb_pixel>());
         duho::augmented_matrix image_matrix = prepare_data(image);
 
         double alpha = 2;
@@ -153,13 +153,13 @@ namespace duho
             duho::superpixel_generation superpixel_generation(image_matrix, fs, K);
             std::vector<duho::superpixel> superpixels = superpixel_generation.generate_superpixels();
             Eigen::MatrixXd clusters_image = superpixel_generation.clusters_to_image();
-            write_image(clusters_image, {image.get_width(), image.get_height()}, filename, "output/", "_clusters_" + std::to_string(static_cast<int>(fs)));
+            if (save) write_image(clusters_image, {image.get_width(), image.get_height()}, filename, "output/", "_clusters_" + std::to_string(static_cast<int>(fs)));
 
             // unseeded region-growing segmentation
             duho::region_growing_segmentation region_growing_segmentation(superpixels, image_matrix);
             std::vector<duho::region_growing_segmentation::region> regions = region_growing_segmentation.segment();
             Eigen::MatrixXd regions_image = region_growing_segmentation.regions_to_image();
-            write_image(regions_image, {image.get_width(), image.get_height()}, filename, "output/", "_regions_" + std::to_string(static_cast<int>(fs)));
+            if (save) write_image(regions_image, {image.get_width(), image.get_height()}, filename, "output/", "_regions_" + std::to_string(static_cast<int>(fs)));
         }
 
     }

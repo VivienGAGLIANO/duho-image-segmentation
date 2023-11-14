@@ -21,7 +21,7 @@ namespace duho
     {
         for (const Eigen::Vector2d &pixel1 : sp1.m_pixels)
         for (const Eigen::Vector2d &pixel2 : sp2.m_pixels)
-            if (dist_1(pixel1, pixel2) < 2) // TODO this wont work if pixel coordinates are normalized between 0 and 1
+            if (sp1.m_image.size*dist_1(pixel1, pixel2) < 2)
                 return true;
 
         return false;
