@@ -1,9 +1,10 @@
 #ifndef DUHO_UTILS_H
 #define DUHO_UTILS_H
 
+#include <cmath>
+#include <filesystem>
 #include <iostream>
 #include <png++/png.hpp>
-#include <cmath>
 
 namespace duho
 {
@@ -125,6 +126,10 @@ namespace duho
         // select last part of file path as filename
         std::string filename = resource_path.substr(resource_path.find_first_of("/\\")+1);
         filename = prefix + filename.substr(0,filename.find_last_of('.')) + suffix + ".png";
+
+        auto fp = std::filesystem::path(filename);
+        if (!std::filesystem::is_directory(fp.parent_path()))
+            std::filesystem::create_directories(fp.parent_path());
 
         matrix_to_image<png::rgb_pixel>(matrix, dimensions).write(filename);
     }
