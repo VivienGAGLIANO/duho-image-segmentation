@@ -8,7 +8,7 @@
 #include "superpixel.h"
 #include "eigen_image.h"
 
-#define DUHO_TIMER
+//#define DUHO_TIMER
 
 
 namespace duho
@@ -51,7 +51,7 @@ namespace duho
 
     /****************************** Region Growing Segmentation ******************************/
 
-    class region_growing_segmentation
+    class  region_growing_segmentation
     {
     public:
         class region
@@ -63,12 +63,12 @@ namespace duho
             bool is_outlier(double distance) const;
 
             const std::vector<superpixel> get_superpixels() const;
-            double get_mean() const;
-            double get_variance() const;
             double get_size() const;
 
             static double weighted_distance_squared(const region &r, const superpixel &sp);
+            static double weighted_distance_squared(const region &r1, const region &r2);
             static bool connected(const region &r, const superpixel &sp);
+            static bool connected(const region &r1, const region &r2);
 
         private:
             std::vector<superpixel> m_superpixels;

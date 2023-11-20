@@ -138,7 +138,7 @@ namespace duho
 
     void region_growing_segmentation::region::add_superpixel(const superpixel &sp)
     {
-        double distance = weighted_distance_squared(*this, sp);
+        double distance = weighted_distance_squared(*this, sp); // TODO bugfix : this seems to have wrong results
         auto iterator = std::upper_bound(m_distances.cbegin(), m_distances.cend(), distance);
 
         // by inserting the superpixel and the distance in the right place we build our vectors sorted by distance to region
@@ -149,6 +149,7 @@ namespace duho
         // update region mean
         m_mean = (m_mean * (m_superpixels.size()-1) + sp.m_mean) / m_superpixels.size();
 
+        // TODO bugfix : quantiles are always 0
         // update quantiles
         q1 = m_distances.size() / 4;
         q2 = 2 * m_distances.size() / 4;
@@ -168,6 +169,11 @@ namespace duho
         return m_superpixels;
     }
 
+    double region_growing_segmentation::region::get_size() const
+    {
+        return m_superpixels.size();
+    }
+
     bool region_growing_segmentation::region::connected(const region_growing_segmentation::region &r, const superpixel &sp)
     {
         for (auto it = r.m_superpixels.cbegin(); it != r.m_superpixels.cend(); ++it)
@@ -177,9 +183,24 @@ namespace duho
         return false;
     }
 
+    bool region_growing_segmentation::region::connected(const region_growing_segmentation::region &r1, const region_growing_segmentation::region &r2)
+    {
+        for (auto it = r1.m_superpixels.cbegin(); it != r1.m_superpixels.cend(); ++it)
+            if (connected(r2, *it))
+                return true;
+
+        return false;
+    }
+
     double region_growing_segmentation::region::weighted_distance_squared(const region_growing_segmentation::region &r, const superpixel &sp)
     {
         Eigen::Vector3d diff = r.m_mean - sp.m_mean;
+        return diff.transpose() * W3.asDiagonal() * diff;
+    }
+
+    double region_growing_segmentation::region::weighted_distance_squared(const region_growing_segmentation::region &r1, const region_growing_segmentation::region &r2)
+    {
+        Eigen::Vector3d diff = r1.m_mean - r2.m_mean;
         return diff.transpose() * W3.asDiagonal() * diff;
     }
 
@@ -210,13 +231,47 @@ namespace duho
             handle_superpixel(sp);
         }
 
+        // post-processing : merge regions with similar mean color
+        int criterion = 0;
+        while (criterion < 10)
+        {
+            // For each region, check for all connected regions if they can be merged
+            for (auto it = m_regions.begin(); it != m_regions.end(); ++it)
+                for (auto it2 = m_regions.begin(); it2 != m_regions.end(); ++it2)
+                {
+                    if (it2 == it) continue;
+
+                    if (region::connected(*it, *it2))
+                    {
+                        double distance = region::weighted_distance_squared(*it, *it2);
+                        if (!it->is_outlier(distance) || !it2->is_outlier(distance))
+                        {
+                            for (const superpixel &sp : it2->get_superpixels())
+                                it->add_superpixel(sp);
+                            m_regions.erase(it2);
+                        }
+                    }
+                }
+
+            ++criterion;
+        }
+
 #ifdef DUHO_TIMER
         std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time);
         std::cout << "Unseeded segmentation execution time : " << duration.count() << "s" << std::endl; // Return the duration in seconds
 #endif
+//
+//    int count = 0;
+//    // count number of regions with more than 1 superpixel
+//    for (const region &reg : m_regions)
+//        if (reg.get_size() > 1)
+//            ++count;
+//    std::cout << "Regions with more than 1 superpixel : " << count << std::endl;
+//    std::cout << "Percentage : " << count / (double)m_regions.size() << std::endl;
 
-        return m_regions;
+
+    return m_regions;
     }
 
     Eigen::MatrixXd region_growing_segmentation::regions_to_image() const
