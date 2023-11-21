@@ -157,9 +157,9 @@ namespace duho
         iqr = m_distances[q3] - m_distances[q1];
     }
 
-    bool region_growing_segmentation::region::is_outlier(double distance) const
+    bool region_growing_segmentation::region:: is_outlier(double distance) const
     {
-        if (q1 == q3) return false;
+        if (q1 == q3) return distance < 0.5 * m_distances[q1] || distance > 1.5 * m_distances[q1]; // TODO this doesn't work. Need to find a better way to handle this case
 
         return distance < m_distances[q1] - 1.5 * iqr || distance > m_distances[q3] + 1.5 * iqr;
     }
@@ -233,24 +233,34 @@ namespace duho
 
         // post-processing : merge regions with similar mean color
         int criterion = 0;
-        while (criterion < 10)
+        int merge_count = 0;
+        while (criterion < 1)
         {
             // For each region, check for all connected regions if they can be merged
             for (auto it = m_regions.begin(); it != m_regions.end(); ++it)
-                for (auto it2 = m_regions.begin(); it2 != m_regions.end(); ++it2)
+                for (auto it2 = m_regions.begin(); it2 != m_regions.end();)
                 {
-                    if (it2 == it) continue;
+                    if (it2 == it)
+                    {
+                        ++it2;
+                        continue;
+                    }
 
                     if (region::connected(*it, *it2))
                     {
                         double distance = region::weighted_distance_squared(*it, *it2);
                         if (!it->is_outlier(distance) || !it2->is_outlier(distance))
                         {
-                            for (const superpixel &sp : it2->get_superpixels())
+                            // TODO merge smallest region into largest region for better performance
+                            for (const superpixel sp : it2->get_superpixels())
                                 it->add_superpixel(sp);
-                            m_regions.erase(it2);
+                            it2 = m_regions.erase(it2);
+                            write_image(regions_to_image(), {std::sqrt(m_image_5d.rows()), std::sqrt(m_image_5d.rows())}, "resources/bird/bird_321.png", "output/", "_regions_merged");
+                            continue;
                         }
                     }
+
+                    ++it2;
                 }
 
             ++criterion;
