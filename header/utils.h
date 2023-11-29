@@ -121,11 +121,11 @@ namespace duho
         return Eigen::Vector3d(r, g, b);
     }
 
-    inline void write_image(const Eigen::MatrixXd &matrix, const Eigen::Vector2i &dimensions, const std::string &resource_path, const std::string &prefix, const std::string &suffix)
+    inline void write_image(const Eigen::MatrixXd &matrix, const Eigen::Vector2i &dimensions, const std::string &resource_path, const std::string &suffix)
     {
         // select last part of file path as filename
         std::string filename = resource_path.substr(resource_path.find_first_of("/\\")+1);
-        filename = prefix + filename.substr(0,filename.find_last_of('.')) + suffix + ".png";
+        filename = "output/" + filename.substr(0,filename.find_last_of('.')) + suffix + ".png";
 
         auto fp = std::filesystem::path(filename);
         if (!std::filesystem::is_directory(fp.parent_path()))
@@ -158,13 +158,13 @@ namespace duho
             duho::superpixel_generation superpixel_generation(image_matrix, fs, K);
             std::vector<duho::superpixel> superpixels = superpixel_generation.generate_superpixels();
             Eigen::MatrixXd clusters_image = superpixel_generation.clusters_to_image();
-            if (save) write_image(clusters_image, {image.get_width(), image.get_height()}, filename, "output/", "_clusters_" + std::to_string(static_cast<int>(fs)));
+            if (save) write_image(clusters_image, {image.get_width(), image.get_height()}, filename, "_clusters_" + std::to_string(static_cast<int>(fs)));
 
             // unseeded region-growing segmentation
             duho::region_growing_segmentation region_growing_segmentation(superpixels, image_matrix);
             std::vector<duho::region_growing_segmentation::region> regions = region_growing_segmentation.segment();
             Eigen::MatrixXd regions_image = region_growing_segmentation.regions_to_image();
-            if (save) write_image(regions_image, {image.get_width(), image.get_height()}, filename, "output/", "_regions_" + std::to_string(static_cast<int>(fs)));
+            if (save) write_image(regions_image, {image.get_width(), image.get_height()}, filename, "_regions_" + std::to_string(static_cast<int>(fs)));
         }
 
     }

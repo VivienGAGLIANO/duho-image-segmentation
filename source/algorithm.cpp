@@ -9,6 +9,51 @@
 
 namespace duho
 {
+    /****************************** Background Detection ******************************/
+
+    std::vector<Eigen::Vector2d> detect_background(augmented_matrix &image, const Eigen::Vector2d &seed, double threshold)
+    {
+        std::vector<Eigen::Vector2d> background;
+        std::vector<Eigen::Vector2d> to_visit = {seed};
+        std::vector<Eigen::Vector2d> visited;
+
+        int index;
+        image.ij_to_ind(seed.x(), seed.y(), index);
+        Eigen::Vector3d seed_color(image.row(index).head(3));
+
+        while (!to_visit.empty())
+        {
+            Eigen::Vector2d pixel = to_visit.back();
+            to_visit.pop_back();
+            visited.push_back(pixel);
+
+            image.ij_to_ind(pixel.x(), pixel.y(), index);
+            Eigen::Vector3d color = image.row(index).head(3);
+
+            if ((color-seed_color).norm() < threshold)
+            {
+                background.push_back(pixel);
+
+                std::vector<Eigen::Vector2d> neighbors = {
+                        {pixel.x()-1, pixel.y()},
+                        {pixel.x()+1, pixel.y()},
+                        {pixel.x(), pixel.y()-1},
+                        {pixel.x(), pixel.y()+1}
+                };
+
+                for (const Eigen::Vector2d &neighbor : neighbors)
+                {
+                    if (neighbor.x() < 0 || neighbor.x() >= image.size || neighbor.y() < 0 || neighbor.y() >= image.size)
+                        continue;
+                    if (std::find(visited.cbegin(), visited.cend(), neighbor) == visited.cend())
+                        to_visit.push_back(neighbor);
+                }
+            }
+        }
+
+        return background;
+    }
+
     /*********************** Superpixel generation ***********************/
 
     superpixel_generation::superpixel_generation(augmented_matrix &image, double feature_size, int K) :
@@ -110,8 +155,8 @@ namespace duho
     }
 
     double superpixel_generation::weighted_euclidian_distance_squared(const Eigen::Vector<double, 5> &x,
-                                                              const Eigen::Vector<double, 5> &y,
-                                                              const Eigen::Vector<double, 5> &weights)
+                                                                      const Eigen::Vector<double, 5> &y,
+                                                                      const Eigen::Vector<double, 5> &weights)
     {
         return (x-y).transpose() * weights.asDiagonal() * (x-y);
     }
@@ -138,7 +183,7 @@ namespace duho
 
     void region_growing_segmentation::region::add_superpixel(const superpixel &sp)
     {
-        double distance = weighted_distance_squared(*this, sp); // TODO bugfix : this seems to have wrong results
+        double distance = weighted_distance_squared(*this, sp);
         auto iterator = std::upper_bound(m_distances.cbegin(), m_distances.cend(), distance);
 
         // by inserting the superpixel and the distance in the right place we build our vectors sorted by distance to region
@@ -149,7 +194,7 @@ namespace duho
         // update region mean
         m_mean = (m_mean * (m_superpixels.size()-1) + sp.m_mean) / m_superpixels.size();
 
-        // TODO bugfix : quantiles are always 0
+        // TODO handle case of small regions by looking at quantiles of the pixels themselves
         // update quantiles
         q1 = m_distances.size() / 4;
         q2 = 2 * m_distances.size() / 4;
@@ -251,11 +296,10 @@ namespace duho
                         double distance = region::weighted_distance_squared(*it, *it2);
                         if (!it->is_outlier(distance) || !it2->is_outlier(distance))
                         {
-                            // TODO merge smallest region into largest region for better performance
                             for (const superpixel sp : it2->get_superpixels())
                                 it->add_superpixel(sp);
                             it2 = m_regions.erase(it2);
-                            write_image(regions_to_image(), {std::sqrt(m_image_5d.rows()), std::sqrt(m_image_5d.rows())}, "resources/bird/bird_321.png", "output/", "_regions_merged");
+//                            write_image(regions_to_image(), {std::sqrt(m_image_5d.rows()), std::sqrt(m_image_5d.rows())}, "resources/bird/bird_321.png", "_regions_merged");
                             continue;
                         }
                     }

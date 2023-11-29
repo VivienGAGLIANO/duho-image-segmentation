@@ -13,6 +13,11 @@
 
 namespace duho
 {
+    /****************************** Background Detection ******************************/
+
+    std::vector<Eigen::Vector2d> detect_background(augmented_matrix &image, const Eigen::Vector2d &seed, double threshold=0.1);
+
+
     const Eigen::Vector3d W3 = {1, 1, 1};
 
     // TODO make image argument const as it's never updated

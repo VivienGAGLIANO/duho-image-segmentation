@@ -101,6 +101,8 @@ public:
     inline void ij_to_ind(int i, int j, int &ind) const
     {
         ind = j * (int)size + i;
+        if (ind < 0 || ind >= size*size)
+            std::cerr << "Error: (" << i << ", " << j << ") index out of bounds." << std::endl;
     }
 
     int size;
